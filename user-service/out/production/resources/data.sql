@@ -16,3 +16,12 @@ INSERT INTO experiences (user_id, campaign_id, apply_date, status, remark) VALUE
                                                                                (3, 3, CURRENT_TIMESTAMP, 'PENDING', NULL),
                                                                                (1, 2, CURRENT_TIMESTAMP, 'APPROVED', '모든 요건 충족'),
                                                                                (2, 1, CURRENT_TIMESTAMP, 'CANCELLED', '신청자 요청에 의한 취소');
+
+
+-- 샘플 리뷰 데이터 삽입
+INSERT INTO reviews (username, rating, content, created_at) VALUES
+                                                                ('alice', 5, '제품이 정말 마음에 들어요! 강력 추천합니다.', CURRENT_TIMESTAMP),
+                                                                ('bob',   3, '배송은 빨랐지만 포장이 아쉬웠어요.', CURRENT_TIMESTAMP),
+                                                                ('carol', 4, '가격 대비 성능이 준수합니다. 전체적으로 만족해요.', CURRENT_TIMESTAMP),
+                                                                ('dave',  2, '기능이 기대 이하였고, 사용법이 복잡해요.', CURRENT_TIMESTAMP),
+                                                                ('eve',   5, '재구매 의사 100%! 친구들에게도 추천했어요!', CURRENT_TIMESTAMP);

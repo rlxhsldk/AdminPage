@@ -1,28 +1,39 @@
 <template>
-  <div class="admin-reviews">
-    <h1>리뷰 관리</h1>
-    <table>
-      <thead>
-      <tr>
-        <th>ID</th><th>작성자</th><th>별점</th><th>내용</th><th>작성일</th><th>액션</th>
-      </tr>
-      </thead>
-      <tbody>
-      <tr v-for="(rev, idx) in reviews" :key="rev.id">
-        <td>{{ rev.id }}</td>
-        <td>{{ rev.username }}</td>
-        <td>{{ rev.rating }}</td>
-        <td>
-          <input v-model="rev.content" @input="rev._edited = true" />
-        </td>
-        <td>{{ rev.createdAt }}</td>
-        <td>
-          <button class="save" @click="saveReview(rev)" :disabled="!rev._edited">저장</button>
-          <button class="delete" @click="removeReview(rev.id)">삭제</button>
-        </td>
-      </tr>
-      </tbody>
-    </table>
+  <div class="review-board">
+    <h1>체험단 리뷰 게시판</h1>
+
+    <!-- 카드 그리드 -->
+    <div class="cards">
+      <div class="card" v-for="rev in reviews" :key="rev.id">
+        <div class="card-image">
+          <!-- 이미지 URL이 없으면 placeholder -->
+          <img :src="rev.imageUrl || defaultImage" alt="리뷰 이미지" />
+        </div>
+
+        <div class="card-body">
+          <p class="review-text">{{ rev.content }}</p>
+          <span class="review-date">{{ formatDate(rev.createdAt) }}</span>
+        </div>
+
+        <!-- 카드 액션: 수정/삭제 -->
+        <div class="card-actions">
+          <button class="btn edit" @click="startEdit(rev)">수정</button>
+          <button class="btn delete" @click="confirmDelete(rev.id)">삭제</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 수정 모달 -->
+    <div v-if="editing" class="modal-backdrop">
+      <div class="modal-card">
+        <h2>리뷰 수정</h2>
+        <textarea v-model="editing.content" rows="4"></textarea>
+        <div class="modal-actions">
+          <button @click="saveEdit" class="btn save">저장</button>
+          <button @click="cancelEdit" class="btn cancel">취소</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -31,145 +42,168 @@ import { ref, onMounted } from 'vue'
 import axios from 'axios'
 
 const reviews = ref([])
+const defaultImage = '/placeholder.png'  // 프로젝트에 placeholder 이미지 위치
+const editing = ref(null)  // { id, content, ... } 인 경우 수정 모달 표시
 
-async function fetchReviews() {
+const fetchReviews = async () => {
   try {
-    const res = await axios.get(
-        'http://localhost:8000/admin/reviews',
-        { withCredentials: true }
-    )
-    reviews.value = res.data.map(r => ({ ...r, _edited: false }))
+    const res = await axios.get('http://localhost:8000/user/reviews', { withCredentials: true })
+    reviews.value = res.data
   } catch (e) {
     console.error('리뷰 목록 조회 실패:', e)
   }
 }
 
-async function saveReview(rev) {
+const formatDate = dt => new Date(dt).toLocaleDateString()
+
+const startEdit = rev => {
+  // 깊은 복사로 바인딩 깨기
+  editing.value = { ...rev }
+}
+
+const saveEdit = async () => {
   try {
-    const { id, rating, content } = rev
-    const dto = { rating, content }
     await axios.put(
-        `http://localhost:8000/admin/reviews/${id}`,
-        dto,
+        `http://localhost:8000/user/reviews/${editing.value.id}`,
+        { ...editing.value },
         { withCredentials: true }
     )
-    rev._edited = false
-    alert('저장되었습니다.')
+    editing.value = null
+    await fetchReviews()
   } catch (e) {
     console.error('리뷰 수정 실패:', e)
   }
 }
 
-async function removeReview(id) {
+const cancelEdit = () => {
+  editing.value = null
+}
+
+const confirmDelete = id => {
   if (!confirm('정말 삭제하시겠습니까?')) return
-  try {
-    await axios.delete(
-        `http://localhost:8000/admin/reviews/${id}`,
-        { withCredentials: true }
-    )
-    await fetchReviews()
-  } catch (e) {
-    console.error('리뷰 삭제 실패:', e)
-  }
+  axios.delete(`http://localhost:8000/user/reviews/${id}`, { withCredentials: true })
+      .then(fetchReviews)
+      .catch(e => console.error('리뷰 삭제 실패:', e))
 }
 
 onMounted(fetchReviews)
 </script>
 
 <style scoped>
-.admin-reviews {
+.review-board {
   max-width: 1200px;
   margin: 40px auto;
-  padding: 20px;
-  background: #f5f6fa;
-  border-radius: 8px;
+  padding: 0 16px;
 }
-
-.admin-reviews h1 {
+.review-board h1 {
   text-align: center;
-  color: #2c3e50;
-  margin-bottom: 20px;
-  font-size: 24px;
+  margin-bottom: 24px;
+  font-size: 2rem;
+  color: #333;
 }
 
-table {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-  border-radius: 8px;
-  overflow: hidden;
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.card {
+  background: #fff;
+  border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-  background: #ffffff;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
-thead {
-  background: #2c3e50;
+.card-image img {
+  width: 100%;
+  height: 140px;
+  object-fit: cover;
 }
 
-thead th {
-  color: #ffffff;
-  padding: 14px;
-  text-align: left;
-  font-weight: 500;
+.card-body {
+  flex: 1;
+  padding: 12px;
+}
+.review-text {
+  margin: 0 0 12px;
+  line-height: 1.4;
+  color: #444;
+  min-height: 48px;
+}
+.review-date {
+  font-size: 0.85rem;
+  color: #888;
 }
 
-tbody tr {
-  border-bottom: 1px solid #eaecef;
-}
-
-tbody tr:nth-child(even) {
+.card-actions {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px;
   background: #f9f9f9;
 }
-
-tbody tr:hover {
-  background: #eef1f5;
-}
-
-td {
-  padding: 12px;
-  color: #34495e;
-}
-
-input {
-  width: 100%;
-  padding: 8px;
-  border: 1px solid #d1d8e0;
-  border-radius: 4px;
-  font-size: 14px;
-}
-
-button {
-  margin: 0 4px;
-  padding: 8px 16px;
+.btn {
+  padding: 6px 10px;
   border: none;
-  border-radius: 4px;
-  font-size: 14px;
-  transition: background 0.3s, transform 0.1s;
+  border-radius: 6px;
+  font-size: 0.9rem;
   cursor: pointer;
+  transition: background 0.2s;
 }
+.btn.edit {
+  background: #4caf50;
+  color: #fff;
+}
+.btn.edit:hover { background: #43a047; }
+.btn.delete {
+  background: #e53935;
+  color: #fff;
+}
+.btn.delete:hover { background: #d32f2f; }
 
-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+/* 모달 */
+.modal-backdrop {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.4);
+  display: flex; justify-content: center; align-items: center;
+  z-index: 1000;
 }
-
-button.save {
-  background: #27ae60;
-  color: #ffffff;
+.modal-card {
+  background: #fff;
+  padding: 24px;
+  border-radius: 8px;
+  width: 360px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
 }
-
-button.save:hover:not(:disabled) {
-  background: #219150;
-  transform: translateY(-1px);
+.modal-card h2 {
+  margin-top: 0;
+  font-size: 1.2rem;
+  color: #333;
 }
-
-button.delete {
-  background: #e74c3c;
-  color: #ffffff;
+.modal-card textarea {
+  width: 100%;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  padding: 8px;
+  resize: vertical;
 }
-
-button.delete:hover {
-  background: #cf3c30;
-  transform: translateY(-1px);
+.modal-actions {
+  margin-top: 16px;
+  text-align: right;
 }
+.modal-actions .btn {
+  margin-left: 8px;
+}
+.modal-actions .save {
+  background: #2196f3;
+  color: #fff;
+}
+.modal-actions .save:hover { background: #1976d2; }
+.modal-actions .cancel {
+  background: #bbb;
+  color: #333;
+}
+.modal-actions .cancel:hover { background: #999; }
 </style>

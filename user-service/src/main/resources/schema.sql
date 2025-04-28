@@ -30,4 +30,16 @@ CREATE TABLE experiences (
                              FOREIGN KEY (user_id)     REFERENCES member(id),
                              FOREIGN KEY (campaign_id) REFERENCES business(id)
 );
+-- File: src/main/resources/schema.sql
 
+-- 기존 reviews 테이블이 있으면 삭제
+DROP TABLE IF EXISTS reviews;
+
+-- reviews 테이블 재생성
+CREATE TABLE reviews (
+                         id          BIGINT AUTO_INCREMENT PRIMARY KEY,
+                         username    VARCHAR(100)      NOT NULL,
+                         rating      INT               NOT NULL,
+                         content     TEXT,
+                         created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
