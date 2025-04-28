@@ -1,0 +1,5 @@
+rootProject.name = 'admin'
+
+include 'gateway-service'
+include 'eureka-server'
+include 'user-service'
